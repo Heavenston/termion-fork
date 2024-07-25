@@ -131,7 +131,7 @@ pub trait TermRead {
     /// EOT and ETX will abort the prompt, returning `None`. Newline or carriage return will
     /// complete the input.
     fn read_passwd<W: Write + AsFd>(&mut self, writer: &mut W) -> io::Result<Option<String>> {
-        let _raw = writer.into_raw_mode()?;
+        let _raw = <&mut W as IntoRawMode>::into_raw_mode(writer);
         self.read_line()
     }
 }
@@ -383,6 +383,7 @@ mod test {
         assert!(st.next().is_none());
     }
 
+    #[cfg(not(target_family = "wasm"))]
     fn line_match(a: &str, b: Option<&str>) {
         let line = a.as_bytes().read_line().unwrap();
         let pass = a.as_bytes().read_passwd(&mut std::io::stdout()).unwrap();
@@ -399,6 +400,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_read() {
         let test1 = "this is the first test";
         let test2 = "this is the second test";
@@ -408,6 +410,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_backspace() {
         line_match(
             "this is the\x7f first\x7f\x7f test",
@@ -420,6 +423,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_end() {
         line_match(
             "abc\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ",
@@ -432,6 +436,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_abort() {
         line_match("abc\x03https://www.youtube.com/watch?v=dQw4w9WgXcQ", None);
         line_match("hello\x04https://www.youtube.com/watch?v=yPYZpwSpKmA", None);

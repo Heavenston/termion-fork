@@ -148,6 +148,7 @@ mod test {
     use std::io::{stdout, Write};
 
     #[test]
+    #[cfg(not(target_family = "wasm"))]
     fn test_into_raw_mode() {
         let mut out = stdout().into_raw_mode().unwrap();
 

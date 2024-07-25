@@ -14,6 +14,12 @@
 extern crate numtoa;
 #[cfg(feature = "serde")]
 extern crate serde;
+#[cfg(target_family = "wasm")]
+extern crate wasm_bindgen;
+#[cfg(target_family = "wasm")]
+extern crate js_sys;
+#[cfg(target_family = "wasm")]
+extern crate web_sys;
 
 #[cfg(target_os = "redox")]
 #[path = "sys/redox/mod.rs"]
