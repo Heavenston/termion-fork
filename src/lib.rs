@@ -33,7 +33,7 @@ mod sys;
 #[path = "sys/wasm/mod.rs"]
 mod sys;
 #[cfg(target_family = "wasm")]
-pub use sys::size::terminal_size_pixels;
+pub use sys::{ size::terminal_size_pixels, Termios };
 
 pub use sys::size::terminal_size;
 #[cfg(all(unix, not(target_os = "redox")))]
