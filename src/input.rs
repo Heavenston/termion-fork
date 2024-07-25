@@ -2,7 +2,8 @@
 
 use std::io::{self, Read, Write};
 use std::ops;
-use std::os::fd::AsFd;
+
+use sys::AsFd;
 
 use event::{self, Event, Key};
 use raw::IntoRawMode;

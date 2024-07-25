@@ -23,10 +23,18 @@ mod sys;
 #[path = "sys/unix/mod.rs"]
 mod sys;
 
+#[cfg(target_family = "wasm")]
+#[path = "sys/wasm/mod.rs"]
+mod sys;
+#[cfg(target_family = "wasm")]
+pub use sys::size::terminal_size_pixels;
+
 pub use sys::size::terminal_size;
 #[cfg(all(unix, not(target_os = "redox")))]
 pub use sys::size::terminal_size_pixels;
 pub use sys::tty::{get_tty, is_tty};
+
+pub use sys::AsFd;
 
 mod r#async;
 pub use r#async::{async_stdin, AsyncReader};
@@ -43,7 +51,7 @@ pub mod screen;
 pub mod scroll;
 pub mod style;
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod test {
     use std::os::fd::AsFd;
 

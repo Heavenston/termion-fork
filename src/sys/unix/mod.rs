@@ -8,6 +8,8 @@ pub mod attr;
 pub mod size;
 pub mod tty;
 
+pub use std::os::fd::AsFd;
+
 // Support functions for converting libc return values to io errors {
 trait IsMinusOne {
     fn is_minus_one(&self) -> bool;

@@ -23,11 +23,10 @@
 use std::{
     io::{self, Write},
     ops,
-    os::fd::AsFd,
 };
 
 use sys::attr::{get_terminal_attr, raw_terminal_attr, set_terminal_attr};
-use sys::Termios;
+use sys::{Termios, AsFd};
 
 /// The timeout of an escape code control sequence, in milliseconds.
 pub const CONTROL_SEQUENCE_TIMEOUT: u64 = 100;
@@ -38,12 +37,25 @@ pub const CONTROL_SEQUENCE_TIMEOUT: u64 = 100;
 /// Restoring will entirely bring back the old TTY state.
 pub struct RawTerminal<W: Write + AsFd> {
     prev_ios: Termios,
-    output: W,
+    output: Option<W>,
+}
+
+impl<W: Write + AsFd> RawTerminal<W> {
+    /// Returns the owned output
+    pub fn into_inner(mut self) -> W {
+        let output = self.output.take().unwrap();
+
+        let _ = set_terminal_attr(output.as_fd(), &self.prev_ios);
+
+        output
+    }
 }
 
 impl<W: Write + AsFd> Drop for RawTerminal<W> {
     fn drop(&mut self) {
-        let _ = set_terminal_attr(self.output.as_fd(), &self.prev_ios);
+        let Some(output) = self.output.take()
+        else { return; };
+        let _ = set_terminal_attr(output.as_fd(), &self.prev_ios);
     }
 }
 
@@ -51,23 +63,23 @@ impl<W: Write + AsFd> ops::Deref for RawTerminal<W> {
     type Target = W;
 
     fn deref(&self) -> &W {
-        &self.output
+        self.output.as_ref().unwrap()
     }
 }
 
 impl<W: Write + AsFd> ops::DerefMut for RawTerminal<W> {
     fn deref_mut(&mut self) -> &mut W {
-        &mut self.output
+        self.output.as_mut().unwrap()
     }
 }
 
 impl<W: Write + AsFd> Write for RawTerminal<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.output.write(buf)
+        self.output.as_mut().unwrap().write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.output.flush()
+        self.output.as_mut().unwrap().flush()
     }
 }
 
@@ -78,7 +90,7 @@ mod unix_impl {
 
     impl<W: Write + AsFd> AsFd for RawTerminal<W> {
         fn as_fd(&self) -> BorrowedFd {
-            self.output.as_fd()
+            self.output.as_ref().unwrap().as_fd()
         }
     }
 }
@@ -101,7 +113,7 @@ pub trait IntoRawMode: Write + AsFd + Sized {
 impl<W: Write + AsFd> IntoRawMode for W {
     fn into_raw_mode(self) -> io::Result<RawTerminal<W>> {
         let mut ios = get_terminal_attr(self.as_fd())?;
-        let prev_ios = ios;
+        let prev_ios = ios.clone();
 
         raw_terminal_attr(&mut ios);
 
@@ -109,7 +121,7 @@ impl<W: Write + AsFd> IntoRawMode for W {
 
         Ok(RawTerminal {
             prev_ios,
-            output: self,
+            output: Some(self),
         })
     }
 }
